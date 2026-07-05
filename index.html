@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catplay · Aprèn Català A2 Jugant</title>
+<style>
+  :root{
+    --sun:#FFC93C;
+    --tangerine:#FF7B25;
+    --coral:#FF4E50;
+    --sand:#FFF3DD;
+    --ink:#3A2618;
+    --teal:#0E8388;
+    --tealdark:#0a5c5f;
+    --card:#FFFFFF;
+    --shadow: 0 8px 20px rgba(120,60,10,0.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, #FFE29A 0%, #FFC93C 28%, #FF9F45 62%, #FF7B25 100%);
+    min-height:100vh;
+    color:var(--ink);
+    overflow-x:hidden;
+    position:relative;
+  }
+  /* decorative floating sun */
+  .bg-sun{
+    position:fixed; top:-90px; right:-90px; width:260px; height:260px; border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #fff6d8, var(--sun) 55%, var(--tangerine) 100%);
+    box-shadow: 0 0 90px 30px rgba(255,201,60,0.55);
+    animation: pulse 6s ease-in-out infinite;
+    z-index:0;
+  }
+  @keyframes pulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+  .bg-wave{
+    position:fixed; bottom:0; left:0; width:100%; height:120px; z-index:0;
+    background: repeating-linear-gradient(120deg, rgba(255,255,255,0.15) 0 40px, rgba(255,255,255,0) 40px 80px);
+    opacity:0.5;
+  }
+  header{
+    position:relative; z-index:1;
+    text-align:center;
+    padding: 28px 16px 10px;
+  }
+  h1{
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    margin:0;
+    letter-spacing:0.5px;
+    color:var(--ink);
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.4);
+    font-weight:800;
+  }
+  h1 span{ color:var(--teal); }
+  .subtitle{
+    margin:6px 0 18px;
+    font-size:1.05rem;
+    font-weight:600;
+    color:#5a3a1c;
+  }
+  /* life sun meter */
+  .status-row{
+    display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .life-sun{ width:96px; height:96px; position:relative; }
+  .ray{
+    position:absolute; left:50%; top:50%; width:8px; height:26px; border-radius:4px;
+    background: var(--coral);
+    transform-origin: 4px 48px;
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .core{
+    position:absolute; left:50%; top:50%; width:46px; height:46px; border-radius:50%;
+    transform:translate(-50%,-50%);
+    background: radial-gradient(circle at 35% 35%, #fff, var(--sun));
+    box-shadow: inset 0 0 8px rgba(180,90,0,0.3);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:1.1rem; color:var(--ink);
+  }
+  .progress-wrap{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .horizon{
+    width:220px; height:14px; border-radius:8px; background:rgba(255,255,255,0.5);
+    overflow:hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .horizon-fill{
+    height:100%; width:0%; background: linear-gradient(90deg, var(--teal), #3fc1c9);
+    transition: width .5s ease;
+  }
+  .progress-label{ font-size:0.85rem; font-weight:700; color:#5a3a1c; }
+
+  #soundToggle{
+    position:fixed; top:16px; left:16px; z-index:5;
+    background: var(--card); border:none; border-radius:50%; width:52px; height:52px;
+    font-size:1.4rem; cursor:pointer; box-shadow:var(--shadow);
+  }
+  #soundToggle:active{ transform: scale(0.94); }
+
+  main{
+    position:relative; z-index:1;
+    max-width:1000px; margin:0 auto; padding: 10px 18px 60px;
+  }
+  #grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+    gap:14px;
+  }
+  .game-card{
+    background: var(--card);
+    border-radius:16px;
+    padding:16px 10px 14px;
+    text-align:center;
+    cursor:pointer;
+    box-shadow: var(--shadow);
+    border: 3px solid transparent;
+    transition: transform .15s ease, border-color .15s ease;
+    position:relative;
+  }
+  .game-card:hover{ transform: translateY(-4px) rotate(-1deg); border-color: var(--sun); }
+  .game-card.done{
+    background: linear-gradient(160deg, #d8fff2, #b6f5e0);
+    border-color: var(--teal);
+  }
+  .game-card .num{
+    position:absolute; top:6px; left:10px; font-size:0.72rem; font-weight:800; color:#bbb;
+  }
+  .game-card .emoji{ font-size:2rem; display:block; margin-bottom:4px;}
+  .game-card .type{ font-size:0.78rem; font-weight:700; color:var(--tangerine); }
+  .game-card.done .type{ color:var(--tealdark); }
+  .game-card .check{
+    position:absolute; top:4px; right:8px; font-size:1rem; color:var(--teal);
+  }
+
+  /* overlay modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(58,38,24,0.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:20; padding:16px;
+  }
+  .hidden{ display:none !important; }
+  .modal{
+    background: var(--sand);
+    border-radius:22px;
+    max-width:520px; width:100%;
+    padding:24px 22px 26px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    position:relative;
+    text-align:center;
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal .close{
+    position:absolute; top:10px; right:14px; background:none; border:none;
+    font-size:1.5rem; cursor:pointer; color:var(--ink); opacity:0.6;
+  }
+  .modal .close:hover{ opacity:1; }
+  .modal h2{ margin-top:4px; font-size:1.25rem; color:var(--tangerine); }
+  .mini-lives{ font-size:0.95rem; margin-bottom:10px; color:var(--coral); font-weight:700;}
+  .question{ font-size:1.15rem; font-weight:700; margin:14px 0 18px; line-height:1.4; }
+  .word-highlight{ color:var(--teal); }
+
+  .options{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .opt-btn{
+    background:#fff; border:2px solid var(--tangerine); border-radius:12px;
+    padding:12px 8px; font-size:1rem; font-weight:700; cursor:pointer;
+    transition: background .15s, transform .1s;
+  }
+  .opt-btn:hover{ background:#fff0d9; transform: scale(1.02); }
+  .opt-btn.correct{ background:#c9f7d8 !important; border-color:var(--teal); }
+  .opt-btn.wrong{ background:#ffd2d2 !important; border-color:var(--coral); }
+
+  .blanks{ font-size:1.8rem; letter-spacing:8px; font-weight:800; margin:16px 0; color:var(--ink); }
+  .keyboard{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .key-btn{
+    background:#fff; border:2px solid var(--teal); color:var(--tealdark);
+    border-radius:8px; width:36px; height:36px; font-weight:800; cursor:pointer; font-size:0.95rem;
+  }
+  .key-btn:disabled{ opacity:0.3; cursor:default; }
+  .key-btn.used-good{ background:#c9f7d8; }
+  .key-btn.used-bad{ background:#ffd2d2; }
+
+  .tiles{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:14px 0; }
+  .tile{
+    background:#fff; border:2px solid var(--tangerine); border-radius:10px;
+    padding:10px 14px; font-weight:800; font-size:1.1rem; cursor:pointer;
+  }
+  .tile.picked{ opacity:0.3; cursor:default; }
+  .answer-line{
+    min-height:44px; border-bottom:3px dashed var(--ink); font-size:1.4rem;
+    font-weight:800; letter-spacing:4px; margin-bottom:14px; padding-bottom:4px;
+  }
+  .row-buttons{ display:flex; gap:10px; justify-content:center; margin-top:10px;}
+  .action-btn{
+    background: var(--teal); color:#fff; border:none; border-radius:10px;
+    padding:10px 18px; font-weight:700; cursor:pointer; font-size:0.95rem;
+  }
+  .action-btn.secondary{ background:#bbb; }
+  .action-btn:hover{ filter:brightness(1.08); }
+
+  .tf-buttons{ display:flex; gap:16px; justify-content:center; margin-top:6px; }
+  .tf-buttons button{
+    flex:1; max-width:150px; padding:14px; border-radius:12px; border:none;
+    font-weight:800; font-size:1.05rem; cursor:pointer; color:#fff;
+  }
+  .tf-true{ background: var(--teal); }
+  .tf-false{ background: var(--coral); }
+
+  .match-cols{ display:flex; gap:16px; justify-content:center; margin:14px 0; }
+  .match-col{ display:flex; flex-direction:column; gap:8px; }
+  .match-item{
+    background:#fff; border:2px solid var(--tangerine); border-radius:10px;
+    padding:10px 14px; font-weight:700; cursor:pointer; min-width:110px;
+  }
+  .match-item.selected{ border-color:var(--teal); background:#eafff6; }
+  .match-item.matched{ background:#c9f7d8; border-color:var(--teal); opacity:0.7; cursor:default; }
+
+  .feedback{ margin-top:14px; font-weight:800; font-size:1.05rem; min-height:26px; }
+  .feedback.good{ color: var(--tealdark); }
+  .feedback.bad{ color: var(--coral); }
+
+  #gameover{ z-index:30; }
+  .gameover-box{
+    background:#fff; border-radius:24px; padding:36px 28px; text-align:center; max-width:440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .gameover-box .big-emoji{ font-size:3.4rem; display:block; margin-bottom:10px; }
+  .gameover-box h2{ color:var(--coral); margin:0 0 8px; }
+  .gameover-box p{ font-size:1.05rem; line-height:1.5; color:#5a3a1c; }
+
+  footer{ position:relative; z-index:1; text-align:center; padding:20px; font-size:0.8rem; color:#6b4a26; }
+
+  @media (max-width:480px){
+    .options{ grid-template-columns: 1fr; }
+    .match-cols{ gap:8px; }
+    .match-item{ min-width:90px; font-size:0.9rem; padding:8px 10px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-sun"></div>
+<div class="bg-wave"></div>
+
+<button id="soundToggle" title="Música">🔇</button>
+
+<header>
+  <h1>☀️ Catplay · Aprèn <span>Català</span> A2</h1>
+  <p class="subtitle">30 jocs ràpids per aprendre vocabulari català. Vigila les teves vides!</p>
+  <div class="status-row">
+    <div class="life-sun" id="lifeSun">
+      <div class="ray" id="ray0" style="transform:translate(-50%,-100%) rotate(0deg);"></div>
+      <div class="ray" id="ray1" style="transform:translate(-50%,-100%) rotate(72deg);"></div>
+      <div class="ray" id="ray2" style="transform:translate(-50%,-100%) rotate(144deg);"></div>
+      <div class="ray" id="ray3" style="transform:translate(-50%,-100%) rotate(216deg);"></div>
+      <div class="ray" id="ray4" style="transform:translate(-50%,-100%) rotate(288deg);"></div>
+      <div class="core" id="livesCore">5</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="horizon"><div class="horizon-fill" id="horizonFill"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 30 jocs superats</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="grid"></div>
+</main>
+
+<footer>Fet amb ☀️ per practicar català A2 — bona sort!</footer>
+
+<div class="overlay hidden" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="overlay hidden" id="gameover">
+  <div class="gameover-box">
+    <span class="big-emoji">🌅</span>
+    <h2>Gràcies per jugar i per intentar-ho!</h2>
+    <p>Has fet servir les teves 5 vides. Cada error és un pas per aprendre més català. Torna-ho a provar quan vulguis!</p>
+    <button class="action-btn" style="margin-top:16px;" onclick="restartAll()">Tornar a jugar</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+const WORDS = [
+  {ca:"gos", es:"perro", emoji:"🐶"},
+  {ca:"gat", es:"gato", emoji:"🐱"},
+  {ca:"casa", es:"casa", emoji:"🏡"},
+  {ca:"taula", es:"mesa", emoji:"🍽️"},
+  {ca:"cadira", es:"silla", emoji:"🪑"},
+  {ca:"platja", es:"playa", emoji:"🏖️"},
+  {ca:"sol", es:"sol", emoji:"☀️"},
+  {ca:"estiu", es:"verano", emoji:"🌻"},
+  {ca:"aigua", es:"agua", emoji:"💧"},
+  {ca:"menjar", es:"comer", emoji:"🍴"},
+  {ca:"beure", es:"beber", emoji:"🥤"},
+  {ca:"llibre", es:"libro", emoji:"📖"},
+  {ca:"amic", es:"amigo", emoji:"🤝"},
+  {ca:"família", es:"familia", emoji:"👨‍👩‍👧"},
+  {ca:"germà", es:"hermano", emoji:"👦"},
+  {ca:"germana", es:"hermana", emoji:"👧"},
+  {ca:"mare", es:"madre", emoji:"👩"},
+  {ca:"pare", es:"padre", emoji:"👨"},
+  {ca:"cotxe", es:"coche", emoji:"🚗"},
+  {ca:"carrer", es:"calle", emoji:"🛣️"},
+  {ca:"ciutat", es:"ciudad", emoji:"🏙️"},
+  {ca:"escola", es:"escuela", emoji:"🏫"},
+  {ca:"professor", es:"profesor", emoji:"👩‍🏫"},
+  {ca:"bo", es:"bueno", emoji:"👍"},
+  {ca:"dolent", es:"malo", emoji:"👎"},
+  {ca:"gran", es:"grande", emoji:"🐘"},
+  {ca:"petit", es:"pequeño", emoji:"🐭"},
+  {ca:"vermell", es:"rojo", emoji:"🔴"},
+  {ca:"blau", es:"azul", emoji:"🔵"},
+  {ca:"groc", es:"amarillo", emoji:"🟡"}
+];
+
+const TYPES = ["quiz","guess","unscramble","truefalse","fillblank","match"];
+const TYPE_INFO = {
+  quiz:       {label:"Qüestionari", icon:"❓"},
+  guess:      {label:"Endevina", icon:"🔤"},
+  unscramble: {label:"Desordena", icon:"🔀"},
+  truefalse:  {label:"V o F", icon:"⚖️"},
+  fillblank:  {label:"Tria el mot", icon:"🎯"},
+  match:      {label:"Aparella", icon:"🔗"}
+};
+
+const GAMES = WORDS.map((w,i)=>({ index:i, word:w, type: TYPES[i % TYPES.length] }));
+
+/* ---------------- STATE ---------------- */
+let lives = 5;
+let completed = new Set();
+let locked = false;
+let currentGameIndex = null;
+
+/* ---------------- HELPERS ---------------- */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function randOthers(excludeIndex, count){
+  const pool = WORDS.map((w,i)=>i).filter(i=>i!==excludeIndex);
+  return shuffle(pool).slice(0,count);
+}
+function normalize(str){
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+}
+
+/* ---------------- RENDER GRID ---------------- */
+function renderGrid(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = "";
+  GAMES.forEach((g,i)=>{
+    const info = TYPE_INFO[g.type];
+    const card = document.createElement('div');
+    card.className = 'game-card' + (completed.has(i) ? ' done' : '');
+    card.innerHTML = `
+      <span class="num">${i+1}</span>
+      ${completed.has(i) ? '<span class="check">✔️</span>' : ''}
+      <span class="emoji">${g.word.emoji}</span>
+      <span class="type">${info.icon} ${info.label}</span>
+    `;
+    card.onclick = ()=>{ if(!locked) openGame(i); };
+    grid.appendChild(card);
+  });
+  updateProgress();
+}
+function updateProgress(){
+  const pct = Math.round((completed.size/GAMES.length)*100);
+  document.getElementById('horizonFill').style.width = pct + "%";
+  document.getElementById('progressLabel').textContent = `${completed.size} / ${GAMES.length} jocs superats`;
+}
+
+/* ---------------- LIVES ---------------- */
+function updateLivesDisplay(){
+  document.getElementById('livesCore').textContent = lives;
+  for(let i=0;i<5;i++){
+    const ray = document.getElementById('ray'+i);
+    ray.style.opacity = (i < lives) ? "1" : "0";
+  }
+  const mini = document.getElementById('miniLives');
+  if(mini) mini.textContent = "❤️".repeat(lives) + "🖤".repeat(5-lives);
+}
+function loseLife(){
+  if(locked) return;
+  lives = Math.max(0, lives-1);
+  updateLivesDisplay();
+  playTone(180,0.18,'sawtooth');
+  if(lives<=0){
+    locked = true;
+    closeModal();
+    document.getElementById('gameover').classList.remove('hidden');
+  }
+}
+function markCompleted(i){
+  completed.add(i);
+  playTone(660,0.12,'triangle');
+  setTimeout(()=>playTone(880,0.15,'triangle'), 130);
+}
+function restartAll(){
+  lives = 5;
+  completed = new Set();
+  locked = false;
+  updateLivesDisplay();
+  document.getElementById('gameover').classList.add('hidden');
+  renderGrid();
+}
+
+/* ---------------- MODAL CONTROL ---------------- */
+function closeModal(){
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('modal').innerHTML = "";
+  currentGameIndex = null;
+}
+function openGame(i){
+  currentGameIndex = i;
+  const g = GAMES[i];
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `<button class="close" onclick="closeModal()">✕</button>
+    <div class="mini-lives" id="miniLives"></div>
+    <h2>${TYPE_INFO[g.type].icon} ${TYPE_INFO[g.type].label} — Joc ${i+1}</h2>
+    <div id="gameBody"></div>
+    <div class="feedback" id="feedback"></div>`;
+  document.getElementById('overlay').classList.remove('hidden');
+  updateLivesDisplay();
+
+  switch(g.type){
+    case 'quiz': buildQuiz(g); break;
+    case 'guess': buildGuess(g); break;
+    case 'unscramble': buildUnscramble(g); break;
+    case 'truefalse': buildTrueFalse(g); break;
+    case 'fillblank': buildFillblank(g); break;
+    case 'match': buildMatch(g); break;
+  }
+}
+function winGame(){
+  markCompleted(currentGameIndex);
+  const fb = document.getElementById('feedback');
+  if(fb){ fb.textContent = "Molt bé! 🌞"; fb.className = "feedback good"; }
+  const idx = currentGameIndex;
+  setTimeout(()=>{
+    closeModal();
+    renderGrid();
+  }, 1100);
+}
+
+/* ---------------- GAME: QUIZ (CA -> ES) ---------------- */
+function buildQuiz(g){
+  const body = document.getElementById('gameBody');
+  const wrongIdx = randOthers(g.index, 3);
+  const options = shuffle([g.word.es, ...wrongIdx.map(i=>WORDS[i].es)]);
+  body.innerHTML = `
+    <div class="question">Com es diu <span class="word-highlight">"${g.word.ca}"</span> ${g.word.emoji} en castellà?</div>
+    <div class="options">${options.map(o=>`<button class="opt-btn" data-val="${o}">${o}</button>`).join('')}</div>
+  `;
+  body.querySelectorAll('.opt-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      if(btn.dataset.val === g.word.es){
+        btn.classList.add('correct');
+        winGame();
+      } else {
+        btn.classList.add('wrong');
+        btn.disabled = true;
+        loseLife();
+        document.getElementById('feedback').textContent = "No és això, torna-ho a provar!";
+        document.getElementById('feedback').className = "feedback bad";
+      }
+    };
+  });
+}
+
+/* ---------------- GAME: FILLBLANK (ES -> CA) ---------------- */
+function buildFillblank(g){
+  const body = document.getElementById('gameBody');
+  const wrongIdx = randOthers(g.index, 3);
+  const options = shuffle([g.word.ca, ...wrongIdx.map(i=>WORDS[i].ca)]);
+  body.innerHTML = `
+    <div class="question">Com es diu <span class="word-highlight">"${g.word.es}"</span> ${g.word.emoji} en català?</div>
+    <div class="options">${options.map(o=>`<button class="opt-btn" data-val="${o}">${o}</button>`).join('')}</div>
+  `;
+  body.querySelectorAll('.opt-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      if(btn.dataset.val === g.word.ca){
+        btn.classList.add('correct');
+        winGame();
+      } else {
+        btn.classList.add('wrong');
+        btn.disabled = true;
+        loseLife();
+        document.getElementById('feedback').textContent = "Gairebé! Prova una altra opció.";
+        document.getElementById('feedback').className = "feedback bad";
+      }
+    };
+  });
+}
+
+/* ---------------- GAME: TRUE/FALSE ---------------- */
+function buildTrueFalse(g){
+  const body = document.getElementById('gameBody');
+  const isTrue = Math.random() < 0.5;
+  let shownEs = g.word.es;
+  if(!isTrue){
+    const otherIdx = randOthers(g.index, 1)[0];
+    shownEs = WORDS[otherIdx].es;
+  }
+  body.innerHTML = `
+    <div class="question">La paraula <span class="word-highlight">"${g.word.ca}"</span> ${g.word.emoji} vol dir <span class="word-highlight">"${shownEs}"</span> en castellà.</div>
+    <div class="tf-buttons">
+      <button class="tf-true" data-val="true">Vertader</button>
+      <button class="tf-false" data-val="false">Fals</button>
+    </div>
+  `;
+  body.querySelectorAll('.tf-buttons button').forEach(btn=>{
+    btn.onclick = ()=>{
+      const chose = btn.dataset.val === "true";
+      if(chose === isTrue){
+        winGame();
+      } else {
+        loseLife();
+        document.getElementById('feedback').textContent = "Aquesta vegada no! Pensa-hi bé.";
+        document.getElementById('feedback').className = "feedback bad";
+      }
+    };
+  });
+}
+
+/* ---------------- GAME: GUESS (hangman-lite) ---------------- */
+function buildGuess(g){
+  const body = document.getElementById('gameBody');
+  const word = g.word.ca;
+  const revealed = new Array(word.length).fill(false);
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZÇ".split("");
+  body.innerHTML = `
+    <div class="question">Endevina la paraula catalana ${g.word.emoji} (significa "${g.word.es}" en castellà)</div>
+    <div class="blanks" id="blanksLine"></div>
+    <div class="keyboard" id="keyboard"></div>
+  `;
+  function drawBlanks(){
+    document.getElementById('blanksLine').textContent =
+      word.split('').map((ch,i)=> revealed[i] ? ch.toUpperCase() : "_").join(' ');
+  }
+  drawBlanks();
+  const kb = document.getElementById('keyboard');
+  letters.forEach(L=>{
+    const b = document.createElement('button');
+    b.className = 'key-btn';
+    b.textContent = L;
+    b.onclick = ()=>{
+      b.disabled = true;
+      const norm = normalize(word);
+      const target = normalize(L);
+      let found = false;
+      for(let i=0;i<word.length;i++){
+        if(normalize(word[i]) === target){ revealed[i]=true; found=true; }
+      }
+      if(found){
+        b.classList.add('used-good');
+        drawBlanks();
+        if(revealed.every(Boolean)){
+          winGame();
+        }
+      } else {
+        b.classList.add('used-bad');
+        loseLife();
+      }
+    };
+    kb.appendChild(b);
+  });
+}
+
+/* ---------------- GAME: UNSCRAMBLE ---------------- */
+function buildUnscramble(g){
+  const body = document.getElementById('gameBody');
+  const word = g.word.ca.toUpperCase();
+  let letters;
+  do { letters = shuffle(word.split('')); } while(letters.join('') === word && word.length>1);
+  let built = [];
+  body.innerHTML = `
+    <div class="question">Desordena les lletres i forma la paraula (significa "${g.word.es}" ${g.word.emoji})</div>
+    <div class="answer-line" id="answerLine">&nbsp;</div>
+    <div class="tiles" id="tiles"></div>
+    <div class="row-buttons">
+      <button class="action-btn secondary" id="clearBtn">Netejar</button>
+      <button class="action-btn" id="checkBtn">Comprovar</button>
+    </div>
+  `;
+  const tilesDiv = document.getElementById('tiles');
+  letters.forEach((L,idx)=>{
+    const t = document.createElement('div');
+    t.className = 'tile';
+    t.textContent = L;
+    t.dataset.idx = idx;
+    t.onclick = ()=>{
+      if(t.classList.contains('picked')) return;
+      t.classList.add('picked');
+      built.push({idx, letter:L});
+      document.getElementById('answerLine').textContent = built.map(b=>b.letter).join('');
+    };
+    tilesDiv.appendChild(t);
+  });
+  document.getElementById('clearBtn').onclick = ()=>{
+    built = [];
+    document.getElementById('answerLine').innerHTML = '&nbsp;';
+    tilesDiv.querySelectorAll('.tile').forEach(t=>t.classList.remove('picked'));
+  };
+  document.getElementById('checkBtn').onclick = ()=>{
+    const attempt = built.map(b=>b.letter).join('');
+    if(attempt === word){
+      winGame();
+    } else {
+      loseLife();
+      document.getElementById('feedback').textContent = "Encara no ho tens, torna-ho a intentar!";
+      document.getElementById('feedback').className = "feedback bad";
+      built = [];
+      document.getElementById('answerLine').innerHTML = '&nbsp;';
+      tilesDiv.querySelectorAll('.tile').forEach(t=>t.classList.remove('picked'));
+    }
+  };
+}
+
+/* ---------------- GAME: MATCH ---------------- */
+function buildMatch(g){
+  const body = document.getElementById('gameBody');
+  const groupIdx = [g.index, (g.index+1)%WORDS.length, (g.index+2)%WORDS.length, (g.index+3)%WORDS.length];
+  const leftItems = shuffle(groupIdx.map(i=>({id:i, text:WORDS[i].ca})));
+  const rightItems = shuffle(groupIdx.map(i=>({id:i, text:WORDS[i].es})));
+  body.innerHTML = `
+    <div class="question">Aparella cada paraula catalana amb la seva traducció</div>
+    <div class="match-cols">
+      <div class="match-col" id="leftCol"></div>
+      <div class="match-col" id="rightCol"></div>
+    </div>
+  `;
+  const leftCol = document.getElementById('leftCol');
+  const rightCol = document.getElementById('rightCol');
+  let selectedLeft = null, selectedRight = null;
+  let matchedCount = 0;
+
+  leftItems.forEach(item=>{
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = item.text;
+    d.dataset.id = item.id;
+    d.onclick = ()=>{
+      if(d.classList.contains('matched')) return;
+      leftCol.querySelectorAll('.match-item').forEach(x=>x.classList.remove('selected'));
+      d.classList.add('selected');
+      selectedLeft = d;
+      tryMatch();
+    };
+    leftCol.appendChild(d);
+  });
+  rightItems.forEach(item=>{
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = item.text;
+    d.dataset.id = item.id;
+    d.onclick = ()=>{
+      if(d.classList.contains('matched')) return;
+      rightCol.querySelectorAll('.match-item').forEach(x=>x.classList.remove('selected'));
+      d.classList.add('selected');
+      selectedRight = d;
+      tryMatch();
+    };
+    rightCol.appendChild(d);
+  });
+
+  function tryMatch(){
+    if(!selectedLeft || !selectedRight) return;
+    if(selectedLeft.dataset.id === selectedRight.dataset.id){
+      selectedLeft.classList.add('matched');
+      selectedRight.classList.add('matched');
+      selectedLeft.classList.remove('selected');
+      selectedRight.classList.remove('selected');
+      matchedCount++;
+      selectedLeft = null; selectedRight = null;
+      if(matchedCount === groupIdx.length){
+        winGame();
+      }
+    } else {
+      loseLife();
+      document.getElementById('feedback').textContent = "Aquesta parella no és correcta.";
+      document.getElementById('feedback').className = "feedback bad";
+      selectedLeft.classList.remove('selected');
+      selectedRight.classList.remove('selected');
+      selectedLeft = null; selectedRight = null;
+    }
+  }
+}
+
+/* ---------------- SOUND ---------------- */
+let audioCtx = null;
+let musicOn = false;
+let musicTimer = null;
+const scale = [261.6,293.7,329.6,392.0,440.0,523.3]; // C major-ish pentatonic-ish, cheerful
+function ensureCtx(){
+  if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+}
+function playTone(freq, dur, type){
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.15, audioCtx.currentTime+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime+dur+0.02);
+}
+function musicStep(){
+  const note = scale[Math.floor(Math.random()*scale.length)];
+  playTone(note, 0.35, 'triangle');
+}
+function toggleMusic(){
+  ensureCtx();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  musicOn = !musicOn;
+  document.getElementById('soundToggle').textContent = musicOn ? "🔊" : "🔇";
+  if(musicOn){
+    musicStep();
+    musicTimer = setInterval(musicStep, 420);
+  } else {
+    clearInterval(musicTimer);
+  }
+}
+document.getElementById('soundToggle').onclick = toggleMusic;
+
+/* ---------------- INIT ---------------- */
+updateLivesDisplay();
+renderGrid();
+</script>
+</body>
+</html>
